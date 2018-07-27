@@ -8,7 +8,7 @@ This repo implements vCenter event driver for Dispatch.
 Create connection string for your vCenter, in the form of:
 
 ```bash
-export VCENTERURL="username@password@vcenter.example.com"
+export VCENTERURL="username:password@vcenter.example.com"
 ```
 
 Replace `username`, `password` and `vcenter.example.com` with respective values for your environment.
@@ -16,13 +16,13 @@ Replace `username`, `password` and `vcenter.example.com` with respective values 
 
 Then create a secret file:
 ```bash
-$ cat << EOF > vcenter_secret.json
+$ cat <<EOF > vcenter_secret.json
 {
-    "vcenterurl": "VCENTERURL"
+    "vcenterurl": "$VCENTERURL"
 }
 EOF
 ```
-Next, create a Dispatch secret which contains aws credentials:
+Next, create a Dispatch secret which contains vcenter credentials:
 ```bash
 $ dispatch create secret vcenter vcenter_secret.json
 Created secret: vcenter
