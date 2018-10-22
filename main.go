@@ -9,6 +9,9 @@ import (
 )
 
 var vcenterURL = flag.String("vcenterurl", "https://vcenter.corp.local:443", "URL to vCenter instance")
+var org = flag.String("org", "default", "organization of this event driver")
+var dispatchHost = flag.String("dispatchhost", "", "dispatch server host")
+var dispatchPort = flag.String("dispatchPort", "", "dispatch server port")
 
 func main() {
 	flag.Parse()
@@ -23,7 +26,7 @@ func main() {
 	}
 	defer driver.close()
 
-	client, err := driverclient.NewHTTPClient()
+	client, err := driverclient.NewHTTPClient(driverclient.WithHost(*dispatchHost), driverclient.WithPort(*dispatchPort))
 	if err != nil {
 		log.Fatalf("Error when creating the events client: %s", err.Error())
 	}
@@ -33,7 +36,7 @@ func main() {
 		log.Fatalf("Error when consuming vcenter events: %s", err.Error())
 	}
 	for event := range eventsChan {
-		err = client.SendOne(event)
+		err = client.SendOne(event, *org)
 		if err != nil {
 			// TODO: implement retry with exponential back-off
 			log.Fatalf("Error when sending event: %s", err.Error())
