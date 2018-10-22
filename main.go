@@ -12,6 +12,7 @@ var vcenterURL = flag.String("vcenterurl", "https://vcenter.corp.local:443", "UR
 var org = flag.String("org", "default", "organization of this event driver")
 var dispatchHost = flag.String("dispatchhost", "", "dispatch server host")
 var dispatchPort = flag.String("dispatchport", "", "dispatch server port")
+var debug = flag.Bool("debug", false, "Enable debug mode (print more information)")
 
 func main() {
 	flag.Parse()
@@ -36,6 +37,9 @@ func main() {
 		log.Fatalf("Error when consuming vcenter events: %s", err.Error())
 	}
 	for event := range eventsChan {
+		if *debug {
+			log.Printf("Sending event %+v", event)
+		}
 		err = client.SendOne(event, *org)
 		if err != nil {
 			// TODO: implement retry with exponential back-off
