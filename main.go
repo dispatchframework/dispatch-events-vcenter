@@ -11,7 +11,7 @@ import (
 var vcenterURL = flag.String("vcenterurl", "https://vcenter.corp.local:443", "URL to vCenter instance")
 var org = flag.String("org", "default", "organization of this event driver")
 var dispatchHost = flag.String("dispatchhost", "", "dispatch server host")
-var dispatchPort = flag.String("dispatchPort", "", "dispatch server port")
+var dispatchPort = flag.String("dispatchport", "", "dispatch server port")
 
 func main() {
 	flag.Parse()
