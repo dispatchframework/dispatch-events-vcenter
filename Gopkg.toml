@@ -31,6 +31,7 @@
 
 [[constraint]]
   name = "github.com/vmware/dispatch"
+  source = "github.com/kars7e/dispatch"
   branch = "solo"
 
 [[constraint]]

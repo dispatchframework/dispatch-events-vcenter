@@ -9,10 +9,8 @@ import (
 )
 
 var vcenterURL = flag.String("vcenterurl", "https://vcenter.corp.local:443", "URL to vCenter instance")
-var org = flag.String("org", "default", "organization of this event driver")
-var dispatchHost = flag.String("dispatchhost", "", "dispatch server host")
-var dispatchPort = flag.String("dispatchport", "", "dispatch server port")
 var debug = flag.Bool("debug", false, "Enable debug mode (print more information)")
+var endpoint = flag.String(driverclient.DispatchAPIEndpointFlag, "", "events api endpoint")
 
 func main() {
 	flag.Parse()
@@ -20,14 +18,17 @@ func main() {
 	if url = os.Getenv("VCENTERURL"); url == "" {
 		url = *vcenterURL
 	}
+	token := os.Getenv(driverclient.AuthToken)
 
 	driver, err := newDriver(url, true)
 	if err != nil {
 		log.Fatalf("Error when creating the driver: %s", err.Error())
 	}
 	defer driver.close()
+	// Get auth token
 
-	client, err := driverclient.NewHTTPClient(driverclient.WithHost(*dispatchHost), driverclient.WithPort(*dispatchPort))
+	// Use HTTP mode of sending events
+	client, err := driverclient.NewHTTPClient(driverclient.WithEndpoint(*endpoint), driverclient.WithToken(token))
 	if err != nil {
 		log.Fatalf("Error when creating the events client: %s", err.Error())
 	}
@@ -40,7 +41,7 @@ func main() {
 		if *debug {
 			log.Printf("Sending event %+v", event)
 		}
-		err = client.SendOne(event, *org)
+		err = client.SendOne(event)
 		if err != nil {
 			// TODO: implement retry with exponential back-off
 			log.Fatalf("Error when sending event: %s", err.Error())
