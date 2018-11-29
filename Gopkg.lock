@@ -147,8 +147,7 @@
     "pkg/trace",
     "pkg/utils"
   ]
-  revision = "439d1d04a0ad44d70a5584c98b94ffb0590da2b4"
-  source = "github.com/kars7e/dispatch"
+  revision = "637ca255b29d582045f2a01161bcd23b9760b764"
 
 [[projects]]
   name = "github.com/vmware/govmomi"
@@ -209,6 +208,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5523f4ca00b4d59ff5cb5616b66edcc443a927d4572c7fddfc451e1f3a003c34"
+  inputs-digest = "0b62bcd7627cfaf73100a2a26738b27b31acd00273c55bb225e10747f683fe23"
   solver-name = "gps-cdcl"
   solver-version = 1

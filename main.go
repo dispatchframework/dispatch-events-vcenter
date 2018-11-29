@@ -2,13 +2,14 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/vmware/dispatch/pkg/events/driverclient"
 )
 
-var vcenterURL = flag.String("vcenterurl", "https://vcenter.corp.local:443", "URL to vCenter instance")
+var vcenterURL = flag.String("vcenterurl", "", "URL to vCenter instance (i.e. cloudadmin@vmc.local:<password>@vcenter.corp.local:443)")
 var debug = flag.Bool("debug", false, "Enable debug mode (print more information)")
 var endpoint = flag.String(driverclient.DispatchAPIEndpointFlag, "", "events api endpoint")
 
@@ -16,7 +17,15 @@ func main() {
 	flag.Parse()
 	var url string
 	if url = os.Getenv("VCENTERURL"); url == "" {
-		url = *vcenterURL
+		if vcenterURL != nil {
+			url = *vcenterURL
+		}
+	}
+	if url == "" {
+		host := os.Getenv("HOST")
+		username := os.Getenv("USERNAME")
+		password := os.Getenv("PASSWORD")
+		url = fmt.Sprintf("%s:%s@%s:443", username, password, host)
 	}
 	token := os.Getenv(driverclient.AuthToken)
 
