@@ -147,7 +147,7 @@
     "pkg/trace",
     "pkg/utils"
   ]
-  revision = "0b32b8238a320be1ca07bb3a7144ff9bbcafe4fd"
+  revision = "637ca255b29d582045f2a01161bcd23b9760b764"
 
 [[projects]]
   name = "github.com/vmware/govmomi"
