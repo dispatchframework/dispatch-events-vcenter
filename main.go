@@ -9,9 +9,23 @@ import (
 	"github.com/vmware/dispatch/pkg/events/driverclient"
 )
 
+var dryRun = flag.Bool("dry-run", false, "Debug, pull messages and do not send Dispatch events")
 var vcenterURL = flag.String("vcenterurl", "", "URL to vCenter instance (i.e. cloudadmin@vmc.local:<password>@vcenter.corp.local:443)")
 var debug = flag.Bool("debug", false, "Enable debug mode (print more information)")
-var endpoint = flag.String(driverclient.DispatchAPIEndpointFlag, "", "events api endpoint")
+var dispatchEndpoint = flag.String(driverclient.DispatchEventsGatewayFlag, "localhost:8080", "events api endpoint")
+
+func getDriverClient() driverclient.Client {
+	if *dryRun {
+		return nil
+	}
+	token := os.Getenv(driverclient.AuthToken)
+	client, err := driverclient.NewHTTPClient(driverclient.WithGateway(*dispatchEndpoint), driverclient.WithToken(token))
+	if err != nil {
+		log.Fatalf("Error when creating the events client: %s", err.Error())
+	}
+	log.Println("Event driver initialized.")
+	return client
+}
 
 func main() {
 	flag.Parse()
@@ -27,20 +41,14 @@ func main() {
 		password := os.Getenv("PASSWORD")
 		url = fmt.Sprintf("%s:%s@%s:443", username, password, host)
 	}
-	token := os.Getenv(driverclient.AuthToken)
 
 	driver, err := newDriver(url, true)
 	if err != nil {
 		log.Fatalf("Error when creating the driver: %s", err.Error())
 	}
 	defer driver.close()
-	// Get auth token
 
-	// Use HTTP mode of sending events
-	client, err := driverclient.NewHTTPClient(driverclient.WithEndpoint(*endpoint), driverclient.WithToken(token))
-	if err != nil {
-		log.Fatalf("Error when creating the events client: %s", err.Error())
-	}
+	client := getDriverClient()
 
 	eventsChan, err := driver.consume(nil)
 	if err != nil {
