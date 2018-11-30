@@ -8,9 +8,13 @@ package driverclient
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/opentracing/opentracing-go"
@@ -19,13 +23,69 @@ import (
 	"github.com/vmware/dispatch/pkg/utils"
 )
 
+const (
+	// DispatchEventsGatewayFlag defines the name of the flag used by Event Manager to set its API endpoint
+	// when provisioning driver. Drivers must implement this flag and use WithGateway with its value.
+	DispatchEventsGatewayFlag = "dispatch-api-endpoint"
+
+	// AuthToken defines the environment variable set by Event manager to authenticate events.
+	// Drivers must read this environment variable and use WithToken if value is is set.
+	AuthToken = "AUTH_TOKEN"
+
+	eventsAPIPath  = "v1/event/ingest"
+	authTokenKey   = "authToken"
+	defaultAPIHost = "localhost"
+	defaultAPIPort = 8080
+)
+
 // HTTPClientOpt allows customization of HTTPClient
 type HTTPClientOpt func(client *HTTPClient) error
 
-// WithPort allows to customize
-func WithPort(port int) HTTPClientOpt {
+// WithGateway allows to customize host & port
+func WithGateway(endpoint string) HTTPClientOpt {
 	return func(client *HTTPClient) error {
-		client.port = port
+		if endpoint == "" {
+			return errors.New("missing value for endpoint")
+		}
+		hostPort := strings.Split(endpoint, ":")
+		client.host = hostPort[0]
+		if len(hostPort) > 1 {
+			port, err := strconv.Atoi(hostPort[1])
+			if err != nil {
+				return err
+			}
+			client.port = port
+		}
+		return nil
+	}
+}
+
+// WithPort allows to customize port
+func WithPort(port string) HTTPClientOpt {
+	return func(client *HTTPClient) error {
+		if port == "" {
+			port = "8080"
+		}
+		p, err := strconv.Atoi(port)
+		if err != nil {
+			return err
+		}
+		client.port = p
+		return nil
+	}
+}
+
+// WithHost allows to customize host
+func WithHost(host string) HTTPClientOpt {
+	return func(client *HTTPClient) error {
+		if host == "" {
+			ips, err := net.LookupIP("host.docker.internal")
+			if err != nil {
+				return err
+			}
+			host = ips[0].String()
+		}
+		client.host = host
 		return nil
 	}
 }
@@ -38,12 +98,22 @@ func WithTracer(t opentracing.Tracer) HTTPClientOpt {
 	}
 }
 
+// WithToken allows setting custom authentication token
+func WithToken(token string) HTTPClientOpt {
+	return func(client *HTTPClient) error {
+		client.authToken = token
+		return nil
+	}
+}
+
 // HTTPClient implements event driver client using HTTP protocol
 type HTTPClient struct {
 	client    *http.Client
 	host      string
 	port      int
+	endpoint  string
 	validator events.Validator
+	authToken string
 
 	tracer opentracing.Tracer
 }
@@ -54,8 +124,9 @@ func NewHTTPClient(opts ...HTTPClientOpt) (Client, error) {
 		client: &http.Client{
 			Timeout: time.Second * 5,
 		},
-		host:      "localhost",
-		port:      8080,
+		host:      defaultAPIHost,
+		port:      defaultAPIPort,
+		endpoint:  eventsAPIPath,
 		tracer:    opentracing.NoopTracer{},
 		validator: validator.NewDefaultValidator(),
 	}
@@ -117,11 +188,22 @@ func (c *HTTPClient) ValidateOne(event *events.CloudEvent) error {
 }
 
 func (c *HTTPClient) getURL() string {
-	return fmt.Sprintf("http://%s:%d/", c.host, c.port)
+	return fmt.Sprintf("http://%s:%d/%s", c.host, c.port, c.endpoint)
 }
 
 func (c *HTTPClient) send(buf *bytes.Buffer) error {
-	_, err := c.client.Post(c.getURL(), "application/json", buf)
+	req, _ := http.NewRequest("POST", c.getURL(), buf)
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Cookie", "unset")
+
+	if c.authToken != "" {
+		q := req.URL.Query()
+		q.Add(authTokenKey, c.authToken)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	// TODO(karols): add debug flag handling
+	_, err := c.client.Do(req)
 	return err
 }
 

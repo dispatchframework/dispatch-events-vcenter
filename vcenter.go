@@ -147,9 +147,9 @@ func (d *vCenterDriver) dispatchEvent(topic string, ve *vCenterEvent) (*events.C
 	}
 
 	event := events.CloudEvent{
+		CloudEventsVersion: "0.1",
 		EventType:          topic,
 		EventTypeVersion:   eventTypeVersion,
-		CloudEventsVersion: events.CloudEventsVersion,
 		Source:             "vcenter1", // TODO: make this configurable
 		EventID:            uuid.NewV4().String(),
 		EventTime:          time.Time{},
